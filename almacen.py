@@ -123,7 +123,7 @@ def ventana_productos(main):
     main.withdraw()
 
     productosForm = tk.Toplevel()
-    productosForm.geometry("700x250")
+    productosForm.geometry("700x450")
     productosForm.title("PRODUCTOS")
 
     id = tk.StringVar()
@@ -146,6 +146,21 @@ def ventana_productos(main):
     tk.Button(productosForm, text="Limpiar", command=lambda: limpiar_formularioproductos(id, nombre, costo)).grid(row=5, column=1)
 
     tk.Label(productosForm, text="").grid(row=0, column=2, padx=30)
+
+    id2 = tk.StringVar()
+    fabrica = tk.StringVar()
+    cantidad = tk.StringVar()
+
+    tk.Label(productosForm, text="Id Producto").grid(row=7, column=0)
+    tk.Entry(productosForm, textvariable=id2).grid(row=7, column=1)
+
+    tk.Label(productosForm, text="Cod Fabrica").grid(row=8, column=0)
+    tk.Entry(productosForm, textvariable=fabrica).grid(row=8, column=1)
+
+    tk.Label(productosForm, text="Cantidad").grid(row=9, column=0)
+    tk.Entry(productosForm, textvariable=cantidad).grid(row=9, column=1)
+
+    tk.Button(productosForm, text="Agregar", width=25, command=lambda: agregar_fabricaarticulo(id2, fabrica, cantidad)).grid(row=10, column=0, pady=15, columnspan=2)
 
 
     # -------------- CONSULTAS PRODUCTOS ---------------
@@ -174,7 +189,7 @@ def ventana_consultas(main):
     main.withdraw()
 
     consultasForm = tk.Toplevel()
-    consultasForm.geometry("700x350")
+    consultasForm.geometry("700x450")
     consultasForm.title("CONSULTAS")
 
     cedula1 = tk.StringVar()
@@ -225,16 +240,16 @@ def ventana_consultas(main):
     lbConsulta3 = tk.StringVar()
     tk.Label(consultasForm, text="Consultar pedido mas fabricante").grid(row=5, column=5, columnspan=2)
     tk.Label(consultasForm, text="Nombre cliente").grid(row=6, column=5)
-    tk.Entry(consultasForm).grid(row=6, column=6)
+    tk.Entry(consultasForm, textvariable=nomcli).grid(row=6, column=6)
 
     tk.Label(consultasForm, text="ID producto").grid(row=7, column=5)
-    tk.Entry(consultasForm).grid(row=7, column=6)
+    tk.Entry(consultasForm, textvariable=idproducto3).grid(row=7, column=6)
 
     tk.Label(consultasForm, text="Fecha").grid(row=8, column=5)
-    tk.Button(consultasForm, text="Calendario", command=lambda: cal_func(consultasForm, hasta)).grid(row=8, column=6)
-    tk.Button(consultasForm, text="Consultar").grid(row=9, column=5)
+    tk.Button(consultasForm, text="Calendario", command=lambda: cal_func(consultasForm, fecha3)).grid(row=8, column=6)
+    tk.Button(consultasForm, text="Consultar", command=lambda :pedidoyfrabrica(nomcli, idproducto3, fecha3, lbConsulta3)).grid(row=9, column=5)
 
-    tk.Label(consultasForm).grid(row=10, column=5, columnspan=2)
+    tk.Label(consultasForm, textvariable=lbConsulta3).grid(row=10, column=5, columnspan=3)
 
 
 
@@ -300,6 +315,24 @@ def registrar_producto(id, nombre, costo):
         messagebox.showwarning("Advertencia", "Faltan campor por completar del formulario")
 
 
+def agregar_fabricaarticulo(id, fabrica, cantidad):
+    if id.get() != "" and fabrica.get() != "" and cantidad.get() != "":
+        if solo_numeros(cantidad.get()):
+            query = "SELECT idarticulo FROM articulo WHERE idarticulo ='"+id.get()+"'"
+            if contarregistros(query):
+                query = "SELECT idfrabrica FROM fabricas WHERE idfrabrica ='" + fabrica.get() + "'"
+                if contarregistros(query):
+                    add_fabricaart(id, fabrica, cantidad)
+                else:
+                    messagebox.showwarning("Advertencia", "La fabrica no existe en la base de datos")
+            else:
+                messagebox.showwarning("Advertencia", "El articulo no existe en la base de datos")
+        else:
+            messagebox.showwarning("Advertencia","Verifique los datos \nCantidad -> solo numeros")
+    else:
+        messagebox.showwarning("Advertencia", "Faltan campos por completar del formulario")
+
+
 # --------------------- VENTANA CONSULTAS ------------------------
 def cal_func(consultasForm, var):
     def calval():
@@ -332,6 +365,24 @@ def cliente_compranproducto(idproducto2, var):
     if idproducto2.get() != "":
         query = "SELECT clientes.nombre FROM pedido INNER JOIN clientes ON clientes.idcliente = pedido.idcliente INNER JOIN detallepedido ON detallepedido.idpedido = pedido.idpedido WHERE detallepedido.idarticulo = '"+idproducto2.get()+"'"
         mostrar_muchos(query, var)
+
+
+def pedidoyfrabrica(nomcli, idproducto3, fecha3, var):
+    if nomcli.get() != "" and idproducto3.get() != "" and fecha3.get() != "":
+        if solo_letras(nomcli.get()):
+            divfecha3 = fecha3.get().split("-")
+            divfecha3[2] = str((int(divfecha3[2]) + 1))
+            fecha4 = divfecha3[0] + "-" + divfecha3[1] + "-" + divfecha3[2]
+
+            query ="SELECT pedido.idpedido, clientes.nombre, direccion, fecha, total, fabricas.nombre FROM pedido INNER JOIN clientes ON clientes.idcliente = pedido.idcliente INNER JOIN detallepedido ON detallepedido.idpedido = pedido.idpedido INNER JOIN fabricas ON fabricas.idfrabrica = detallepedido.idfrabrica WHERE clientes.nombre = '"+nomcli.get()+"' and detallepedido.idarticulo = '"+idproducto3.get()+"' and fecha >= '"+fecha3.get()+"' and fecha < '"+fecha4+"'"
+            print(query)
+            mostrar_muchos(query, var)
+        else:
+            messagebox.showerror("", "La nombre del cliente solo puede contener letras")
+    else:
+        messagebox.showwarning("Advertencia", "Faltan campos por completar para la consulta")
+
+
 #----------------------------------------------------------- CIERRE DE VENTANAS ---------------------------------------------------------------------------
 
 def cerrar_ventana(ventana_cerrar, ventana_abrir):
@@ -352,6 +403,11 @@ def limpiar_formularioproductos(id, nombre, costo):
     id.set("")
     nombre.set("")
     costo.set("")
+
+def limpiar_formulafabrica(id, fabrica, cantidad):
+    id.set("")
+    fabrica.set("")
+    cantidad.set("")
 
 #-------------------------------------------------------------------------------- VALIDACIONES DE CAMPOS ---------------------------------------------------------------------------
 
@@ -461,6 +517,21 @@ def insert_product(id, nombre, costo):
         con.commit()
         messagebox.showinfo("","Se ha registrado un producto nuevo")
         limpiar_formularioproductos(id, nombre, costo)
+    except Exception as error:
+        print(error)
+
+
+def add_fabricaart(id, fabrica, cantidad):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+        query = "INSERT INTO fabricaxarticulo VALUES (%s, %s, %s)"
+        args = (fabrica.get(), id.get(), int(cantidad.get()))
+        cursor.execute(query, args)
+        con.commit()
+        messagebox.showinfo("","Se ha agregado articulo a la fabrica")
+        limpiar_formulafabrica(id, fabrica, cantidad)
+
     except Exception as error:
         print(error)
 
