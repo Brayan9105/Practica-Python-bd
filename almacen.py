@@ -256,6 +256,17 @@ def ventana_consultas(main):
 
 def ventana_pedido(main):
 
+    def llenarcombobox(idcliente, direccion):
+        if idcliente.get() != "":
+            print("hola")
+            query = "SELECT direccion FROM direcciones WHERE idcliente ='"+idcliente.get()+"'"
+            data = llamardatos_combobox(query)
+            listaDirecciones = []
+            for row in data:
+                listaDirecciones.append(row[0])
+
+            ttk.Combobox(pedidosForm, textvariable=direccion, state="readonly", values=listaDirecciones).grid(row=2, column=3)
+
     main.withdraw()
 
     pedidosForm = tk.Toplevel()
@@ -264,6 +275,7 @@ def ventana_pedido(main):
 
     idcliente = tk.StringVar()
     direccion = tk.StringVar()
+    listaDir = []
 
     tk.Button(pedidosForm, text="Volver", width=25, command=lambda: cerrar_ventana(pedidosForm, main)).grid(row=0, column=3, pady=10, columnspan=3)
     tk.Label(pedidosForm, text="Registro de pedido").grid(row=1, column=0, pady=15, columnspan=2)
@@ -272,7 +284,9 @@ def ventana_pedido(main):
     tk.Entry(pedidosForm, textvariable=idcliente).grid(row=2, column=1)
 
     tk.Label(pedidosForm, text="Direccion").grid(row=2, column=2)
-    tk.Entry(pedidosForm, textvariable=direccion).grid(row=2, column=3)
+    ttk.Combobox(pedidosForm, textvariable=direccion, values=listaDir).grid(row=2, column=3)
+    tk.Button(pedidosForm, text="Actualizar", command=lambda:llenarcombobox(idcliente, direccion)).grid(row=2, column=4)
+    #tk.Entry(pedidosForm, textvariable=direccion).grid(row=2, column=3)
 
     tk.Label(pedidosForm, text="Detalle Factura").grid(row=3, column=1, pady=15)
 
@@ -486,12 +500,39 @@ def agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idp
                         query1 = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '" + idfabrica1.get() + "'"
                         query2 = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '" + idfabrica2.get() + "'"
                         if contarregistros(query1) and contarregistros(query2):
+
                             query1 = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
                             query2 = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
                             if contarregistros(query1) and contarregistros(query2):
-                                agregar_pedido(idcliente, direccion)
-                                agregar_detalledosceldas(idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2)
-                                messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
+                                queryCantidad1 = "SELECT DISTINCT stock from fabricaxarticulo where idfrabrica = '" + idfabrica1.get() + "' and idarticulo = '" + idproducto1.get() + "'"
+                                queryCantidad2 = "SELECT DISTINCT stock from fabricaxarticulo where idfrabrica = '" + idfabrica2.get() + "' and idarticulo = '" + idproducto2.get() + "'"
+                                stock1 = cantidad_stock(queryCantidad1)
+                                stock2 = cantidad_stock(queryCantidad2)
+
+                                if int(cantidad1.get()) > stock1 and int(cantidad2.get()) > stock2:
+                                    messagebox.showerror("","La cantidad supera el stock\n" +
+                                          "Registro 1: stock("+str(stock1)+") Cantidad a comprar: "+cantidad1.get()+""+
+                                          "\nRegistro 2: stock("+str(stock2)+") Cantidad a comprar: "+cantidad2.get()+"")
+                                else:
+                                    queryCosto1 = "SELECT costo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
+                                    queryCosto2 = "SELECT costo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
+                                    queryLimite1 = "SELECT limite_credito FROM clientes WHERE idcliente ='"+idcliente.get()+"'"
+
+                                    costo1 = limite_costo(queryCosto1)
+                                    costo2 = limite_costo(queryCosto1)
+                                    limite = limite_costo(queryLimite1)
+
+                                    total = (costo1 * int(cantidad1.get()) + costo2 * int(cantidad2.get()))
+                                    if ( total > int(limite)):
+                                        messagebox.showerror("","Pedido excede limete de prastamo\nTotal factura: "+str(total)+"\nLimite Prestamo: "+str(limite))
+                                    else:
+                                        agregar_pedido(idcliente, direccion)
+                                        agregar_detalledosceldas(idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2)
+                                        messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
                             else:
                                 messagebox.showwarning("Advertencia", "Uno o los dos productos no existen en la base de datos")
                         else:
@@ -506,9 +547,36 @@ def agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idp
                     if contarregistros(query):
                         query = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
                         if contarregistros(query):
-                            agregar_pedido(idcliente, direccion)
-                            agregar_detalle(idfabrica1, idproducto1, cantidad1)
-                            messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
+
+                            queryCantidad1 = "SELECT DISTINCT stock from fabricaxarticulo where idfrabrica = '" + idfabrica1.get() + "' and idarticulo = '" + idproducto1.get() + "'"
+                            stock1 = cantidad_stock(queryCantidad1)
+
+                            if int(cantidad1.get()) > stock1:
+                                messagebox.showerror("", "La cantidad supera el stock\n" +
+                                                     "Registro 1: stock(" + str(
+                                    stock1) + ") Cantidad a comprar: " + cantidad1.get() + "")
+
+                            else:
+                                queryCosto1 = "SELECT costo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
+                                queryLimite1 = "SELECT limite_credito FROM clientes WHERE idcliente ='" + idcliente.get() + "'"
+
+                                costo1 = limite_costo(queryCosto1)
+                                limite = limite_costo(queryLimite1)
+
+                                total = (costo1 * int(cantidad1.get()))
+                                if (total > int(limite)):
+                                    messagebox.showerror("", "Pedido excede limete de prastamo\nTotal factura: " + str(
+                                        total) + "\nLimite Prestamo: " + str(limite))
+                                else:
+                                    agregar_pedido(idcliente, direccion)
+                                    agregar_detalle(idfabrica1, idproducto1, cantidad1)
+                                    messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
+
+
                         else:
                             messagebox.showwarning("Advertencia", "El articulo no existe en la base de datos")
                     else:
@@ -523,9 +591,35 @@ def agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idp
                     if contarregistros(query):
                         query = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
                         if contarregistros(query):
-                            agregar_pedido(idcliente, direccion)
-                            agregar_detalle(idfabrica2, idproducto2, cantidad2)
-                            messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
+                            queryCantidad1 = "SELECT DISTINCT stock from fabricaxarticulo where idfrabrica = '" + idfabrica2.get() + "' and idarticulo = '" + idproducto2.get() + "'"
+                            stock1 = cantidad_stock(queryCantidad1)
+
+                            if int(cantidad2.get()) > stock1:
+                                messagebox.showerror("", "La cantidad supera el stock\n" +
+                                                     "Registro 1: stock(" + str(
+                                    stock1) + ") Cantidad a comprar: " + cantidad2.get() + "")
+
+                            else:
+                                queryCosto1 = "SELECT costo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
+                                queryLimite1 = "SELECT limite_credito FROM clientes WHERE idcliente ='" + idcliente.get() + "'"
+
+                                costo1 = limite_costo(queryCosto1)
+                                limite = limite_costo(queryLimite1)
+
+                                total = (costo1 * int(cantidad2.get()))
+                                if (total > int(limite)):
+                                    messagebox.showerror("", "Pedido excede limete de prastamo\nTotal factura: " + str(
+                                        total) + "\nLimite Prestamo: " + str(limite))
+                                else:
+                                    agregar_pedido(idcliente, direccion)
+                                    agregar_detalle(idfabrica2, idproducto2, cantidad2)
+                                    messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+
+
+
+
                         else:
                             messagebox.showwarning("Advertencia", "El articulo no existe en la base de datos")
                     else:
@@ -538,6 +632,8 @@ def agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idp
             messagebox.showwarning("Advertencia", "El cliente no existe en la base de datos")
     else:
         messagebox.showwarning("Advertencia", "Debe llenar los campos de cliente y direccion de envio")
+
+
 
 
 #----------------------------------------------------------- CIERRE DE VENTANAS ---------------------------------------------------------------------------
@@ -807,7 +903,43 @@ def agregar_detalledosceldas(idfabrica1, idfabrica2, idproducto1, idproducto2, c
     except Exception as error:
         print(error)
 
+def cantidad_stock(query):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+        cursor.execute(query)
+        data = cursor.fetchone()
 
+        return data[0]
+
+    except Exception as error:
+        print(error)
+
+def limite_costo(queryCosto1):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+        cursor.execute(queryCosto1)
+        data = cursor.fetchone()
+
+        return data[0]
+
+    except Exception as error:
+        print(error)
+
+
+def llamardatos_combobox(query):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+        queryComb = query
+        cursor.execute(query)
+        data = cursor.fetchall()
+
+        return data
+
+    except Exception as error:
+        print(error)
 
 
 
