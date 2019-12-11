@@ -295,10 +295,32 @@ def ventana_pedido(main):
     tk.Entry(pedidosForm, textvariable=idproducto2).grid(row=6, column=2)
     tk.Entry(pedidosForm, textvariable=cantidad2).grid(row=6, column=3)
 
-    tk.Label(pedidosForm, text="Total").grid(row=7, column=2, pady=20)
-    tk.Entry(pedidosForm, state="readonly").grid(row=7, column=3)
+    tk.Button(pedidosForm, text="Facturar", command=lambda:agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2), width=20).grid(row=7, column=2, columnspan=2)
 
-    tk.Button(pedidosForm, text="Facturar", command=lambda:agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2), width=20).grid(row=8, column=2, columnspan=2)
+    lbPedidos = tk.StringVar()
+    queryPedidos = "SELECT * FROM pedido"
+
+    tk.Label(pedidosForm, text="Lista de pedidos").grid(row=8, column=0)
+    tk.Button(pedidosForm, text="Buscar", command=lambda:mostrar_muchos(queryPedidos, lbPedidos)).grid(row=8, column=1)
+    tk.Label(pedidosForm, textvariable=lbPedidos).grid(row=9, column=0, columnspan=3)
+
+
+
+    lbDetalle = tk.StringVar()
+    queryDetalle = "SELECT * FROM detallepedido WHERE idpedido = "
+    idpedido = tk.StringVar()
+
+    tk.Label(pedidosForm, text="Lista de pedidos").grid(row=8, column=4)
+    tk.Entry(pedidosForm, textvariable=idpedido).grid(row=8, column=5)
+    tk.Button(pedidosForm, text="Buscar", command=lambda:detalle_pedido(queryDetalle, idpedido, lbDetalle)).grid(row=8, column=6)
+    tk.Label(pedidosForm, textvariable=lbDetalle).grid(row=9, column=4, columnspan=3)
+
+
+
+
+
+
+
 
 
 
@@ -315,6 +337,9 @@ def dologin(user, passw, loginform):
             messagebox.showinfo("","Usuario o contraseña erroneos")
     else:
         messagebox.showinfo("", "Campos sin completar")
+
+
+
 
 
 #----------------------------------------------------------- FUNCIONES VENTANAS ---------------------------------------------------------------------------
@@ -434,6 +459,17 @@ def pedidoyfrabrica(nomcli, idproducto3, fecha3, var):
         messagebox.showwarning("Advertencia", "Faltan campos por completar para la consulta")
 
 
+# --------------------- VENTANA ARTICULOS ------------------------
+def todos_pedidos():
+    pass
+
+def detalle_pedido(queryDetalle, idpedido, lbDetalle):
+    if idpedido.get() != "":
+        queryDetalle += idpedido.get()
+        mostrar_muchos(queryDetalle, lbDetalle)
+    else:
+        messagebox.showwarning("Advertencia", "Faltan campos por completar para la consulta")
+
 
 
 # --------------------- VENTANA PEDIDOS ------------------------
@@ -551,6 +587,18 @@ def solo_numeros(texto):
             respuesta = False
 
     return respuesta
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------- MANEJO DE BASE DE DATOS ---------------------------------------------------------------------------
