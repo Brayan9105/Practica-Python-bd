@@ -43,7 +43,7 @@ def ventana_opciones(login):
 
     tk.Button(opciones, text="Articulos", height=3, width=30, command=lambda:ventana_productos(opciones)).grid(row=3, column=0, columnspan=2)
     tk.Button(opciones, text="Clientes", height=3, width=30, command=lambda: ventana_clientes(opciones)).grid(row=4, column=0, columnspan=2)
-    tk.Button(opciones, text="Pedidos", height=3, width=30, command=lambda: ventana_facturar(opciones)).grid(row=5, column=0, columnspan=2)
+    tk.Button(opciones, text="Pedidos", height=3, width=30, command=lambda: ventana_pedido(opciones)).grid(row=5, column=0, columnspan=2)
     tk.Button(opciones, text="Consultas", height=3, width=30, command=lambda: ventana_consultas(opciones)).grid(row=6,
                                                                                                                 column=0,
                                                                                                                 columnspan=2)
@@ -253,6 +253,57 @@ def ventana_consultas(main):
 
 
 
+
+def ventana_pedido(main):
+
+    main.withdraw()
+
+    pedidosForm = tk.Toplevel()
+    pedidosForm.geometry("600x450")
+    pedidosForm.title("PEDIDOS")
+
+    idcliente = tk.StringVar()
+    direccion = tk.StringVar()
+
+    tk.Button(pedidosForm, text="Volver", width=25, command=lambda: cerrar_ventana(pedidosForm, main)).grid(row=0, column=3, pady=10, columnspan=3)
+    tk.Label(pedidosForm, text="Registro de pedido").grid(row=1, column=0, pady=15, columnspan=2)
+
+    tk.Label(pedidosForm, text="Id cliente").grid(row=2, column=0)
+    tk.Entry(pedidosForm, textvariable=idcliente).grid(row=2, column=1)
+
+    tk.Label(pedidosForm, text="Direccion").grid(row=2, column=2)
+    tk.Entry(pedidosForm, textvariable=direccion).grid(row=2, column=3)
+
+    tk.Label(pedidosForm, text="Detalle Factura").grid(row=3, column=1, pady=15)
+
+    tk.Label(pedidosForm, text="ID fabrica").grid(row=4, column=1)
+    tk.Label(pedidosForm, text="ID producto").grid(row=4, column=2)
+    tk.Label(pedidosForm, text="cantidad").grid(row=4, column=3)
+
+    idfabrica1 = tk.StringVar()
+    idfabrica2 = tk.StringVar()
+    idproducto1 = tk.StringVar()
+    idproducto2 = tk.StringVar()
+    cantidad1 = tk.StringVar()
+    cantidad2 = tk.StringVar()
+
+    tk.Entry(pedidosForm, textvariable=idfabrica1).grid(row=5, column=1)
+    tk.Entry(pedidosForm, textvariable=idproducto1).grid(row=5, column=2)
+    tk.Entry(pedidosForm, textvariable=cantidad1).grid(row=5, column=3)
+
+    tk.Entry(pedidosForm, textvariable=idfabrica2).grid(row=6, column=1)
+    tk.Entry(pedidosForm, textvariable=idproducto2).grid(row=6, column=2)
+    tk.Entry(pedidosForm, textvariable=cantidad2).grid(row=6, column=3)
+
+    tk.Label(pedidosForm, text="Total").grid(row=7, column=2, pady=20)
+    tk.Entry(pedidosForm, state="readonly").grid(row=7, column=3)
+
+    tk.Button(pedidosForm, text="Facturar", command=lambda:agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2), width=20).grid(row=8, column=2, columnspan=2)
+
+
+
+
+
 #-----------------------------------------------------------------  LOGIN  ---------------------------------------------------------------------------
 
 def dologin(user, passw, loginform):
@@ -381,6 +432,76 @@ def pedidoyfrabrica(nomcli, idproducto3, fecha3, var):
             messagebox.showerror("", "La nombre del cliente solo puede contener letras")
     else:
         messagebox.showwarning("Advertencia", "Faltan campos por completar para la consulta")
+
+
+
+
+# --------------------- VENTANA PEDIDOS ------------------------
+def agregarpedido(idcliente, direccion, idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2):
+    if idcliente.get() != "" and direccion.get() != "":
+        query = "SELECT idcliente FROM clientes WHERE idcliente = '"+idcliente.get()+"'"
+        if contarregistros(query):
+
+            if idfabrica1.get() != "" and idfabrica2.get() != "" and idproducto1.get() != "" and idproducto2.get() != "" and cantidad1.get() != "" and cantidad2.get() != "":
+                if idfabrica1.get() == idfabrica2.get() and idproducto1.get() == idproducto2.get():
+                    messagebox.showwarning("Advertencia", "El registro 1 y 2 son el mismo")
+                else:
+                    if solo_numeros(cantidad1.get()) and solo_numeros(cantidad2.get()):
+                        query1 = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '" + idfabrica1.get() + "'"
+                        query2 = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '" + idfabrica2.get() + "'"
+                        if contarregistros(query1) and contarregistros(query2):
+                            query1 = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
+                            query2 = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
+                            if contarregistros(query1) and contarregistros(query2):
+                                agregar_pedido(idcliente, direccion)
+                                agregar_detalledosceldas(idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2)
+                                messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+                            else:
+                                messagebox.showwarning("Advertencia", "Uno o los dos productos no existen en la base de datos")
+                        else:
+                            messagebox.showwarning("Advertencia", "Uno o las dos fabricas no existen en la base de datos")
+                    else:
+                        messagebox.showerror("", "El campo cantidad solo puede contener numeros")
+
+
+            elif idfabrica1.get() != "" and idproducto1.get() != "" and cantidad1.get() != "": #--------------------------------------> CASO FILA 1
+                if solo_numeros(cantidad1.get()):
+                    query = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '"+idfabrica1.get()+"'"
+                    if contarregistros(query):
+                        query = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto1.get() + "'"
+                        if contarregistros(query):
+                            agregar_pedido(idcliente, direccion)
+                            agregar_detalle(idfabrica1, idproducto1, cantidad1)
+                            messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+                        else:
+                            messagebox.showwarning("Advertencia", "El articulo no existe en la base de datos")
+                    else:
+                        messagebox.showwarning("Advertencia", "La fabrica no existe en la base de datos")
+                else:
+                    messagebox.showerror("", "El campo cantidad solo puede contener numeros")
+
+
+            elif idfabrica2.get() != "" and idproducto2.get() != "" and cantidad2.get() != "": #--------------------------------------> CASO FILA 2
+                if solo_numeros(cantidad2.get()):
+                    query = "SELECT idfrabrica FROM fabricas WHERE idfrabrica = '" + idfabrica2.get() + "'"
+                    if contarregistros(query):
+                        query = "SELECT idarticulo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
+                        if contarregistros(query):
+                            agregar_pedido(idcliente, direccion)
+                            agregar_detalle(idfabrica2, idproducto2, cantidad2)
+                            messagebox.showinfo("Correcto", "Se ha agregado un nuevo pedido")
+                        else:
+                            messagebox.showwarning("Advertencia", "El articulo no existe en la base de datos")
+                    else:
+                        messagebox.showwarning("Advertencia", "La fabrica no existe en la base de datos")
+                else:
+                    messagebox.showerror("", "El campo cantidad solo puede contener numeros")
+            else:
+                messagebox.showwarning("Advertencia", "No ha agregado ningun registro completo a la lista")
+        else:
+            messagebox.showwarning("Advertencia", "El cliente no existe en la base de datos")
+    else:
+        messagebox.showwarning("Advertencia", "Debe llenar los campos de cliente y direccion de envio")
 
 
 #----------------------------------------------------------- CIERRE DE VENTANAS ---------------------------------------------------------------------------
@@ -534,6 +655,112 @@ def add_fabricaart(id, fabrica, cantidad):
 
     except Exception as error:
         print(error)
+
+
+# --------------------- VENTANA PEDIDO ------------------------
+def agregar_pedido(idcliente, direccion):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+        query = "INSERT INTO pedido (idcliente, direccion) VALUES (%s, %s)"
+        args = (idcliente.get(), direccion.get())
+        cursor.execute(query, args)
+
+        con.commit()
+
+    except Exception as error:
+        print(error)
+
+
+def agregar_detalle(idfabrica1, idproducto1, cantidad1):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+
+        queryBusquedaPedido = "SELECT MAX(idpedido) FROM pedido"
+        cursor.execute(queryBusquedaPedido)
+        idpedido = cursor.fetchone()
+
+        queryBusqueda = "SELECT costo FROM articulo WHERE idarticulo = '"+idproducto1.get()+"'"
+        cursor.execute(queryBusqueda)
+
+        costo = cursor.fetchone()
+        subtotal = int(costo[0]) * int(cantidad1.get())
+
+        queryINSERT = "INSERT INTO detallepedido VALUES (%s, %s, %s, %s, %s, %s)"
+        args = (idpedido[0], idfabrica1.get(), idproducto1.get(), costo[0], int(cantidad1.get()), subtotal)
+        cursor.execute(queryINSERT, args)
+
+        # ------------------------Calcular subtotal
+
+        queryCalcular = "SELECT SUM(subtotal) from detallepedido WHERE idpedido = '"+str(idpedido[0])+"'"
+        cursor.execute(queryCalcular)
+        total = cursor.fetchone()
+
+        #------------------------actualizar total del pedido
+        queryUpdate = "UPDATE pedido SET total = %s WHERE idpedido = %s"
+        args = (total[0], idpedido[0])
+        cursor.execute(queryUpdate, args)
+
+        con.commit()
+
+
+    except Exception as error:
+        print(error)
+
+
+
+def agregar_detalledosceldas(idfabrica1, idfabrica2, idproducto1, idproducto2, cantidad1, cantidad2):
+    try:
+        con = conexion()
+        cursor = con.cursor()
+
+        queryBusquedaPedido = "SELECT MAX(idpedido) FROM pedido"
+        cursor.execute(queryBusquedaPedido)
+        idpedido = cursor.fetchone()
+
+        # ------------------------Insertar detalle fila 1
+        queryBusqueda = "SELECT costo FROM articulo WHERE idarticulo = '"+idproducto1.get()+"'"
+        cursor.execute(queryBusqueda)
+
+        costo = cursor.fetchone()
+        subtotal = int(costo[0]) * int(cantidad1.get())
+
+        queryINSERT = "INSERT INTO detallepedido VALUES (%s, %s, %s, %s, %s, %s)"
+        args = (idpedido[0], idfabrica1.get(), idproducto1.get(), costo[0], int(cantidad1.get()), subtotal)
+        cursor.execute(queryINSERT, args)
+
+        # ------------------------Insertar detalle fila 2
+        queryBusqueda = "SELECT costo FROM articulo WHERE idarticulo = '" + idproducto2.get() + "'"
+        cursor.execute(queryBusqueda)
+
+        costo = cursor.fetchone()
+        subtotal = int(costo[0]) * int(cantidad2.get())
+
+        queryINSERT = "INSERT INTO detallepedido VALUES (%s, %s, %s, %s, %s, %s)"
+        args = (idpedido[0], idfabrica2.get(), idproducto2.get(), costo[0], int(cantidad2.get()), subtotal)
+        cursor.execute(queryINSERT, args)
+
+
+        # ------------------------Calcular subtotal
+
+        queryCalcular = "SELECT SUM(subtotal) from detallepedido WHERE idpedido = '"+str(idpedido[0])+"'"
+        cursor.execute(queryCalcular)
+        total = cursor.fetchone()
+
+        #------------------------actualizar total del pedido
+        queryUpdate = "UPDATE pedido SET total = %s WHERE idpedido = %s"
+        args = (total[0], idpedido[0])
+        cursor.execute(queryUpdate, args)
+
+        con.commit()
+
+
+    except Exception as error:
+        print(error)
+
+
+
 
 
 # --------------------- MOSTRAR REGISTROS ------------------------
